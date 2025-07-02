@@ -1,0 +1,23 @@
+# Model outputs and checkpoints
+outputs/
+*.safetensors
+*.pt
+*.bin
+*.ckpt
+
+# Cache directories
+cache/
+__pycache__/
+*.pyc
+
+# Environment files
+.env
+.venv/
+
+# IDE files
+.vscode/
+.idea/
+
+# OS files
+.DS_Store
+Thumbs.db
