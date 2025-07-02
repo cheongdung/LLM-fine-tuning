@@ -1,49 +1,73 @@
-from transformers import AutoTokenizer, AutoModelForCausalLM, TrainingArguments, Trainer, DataCollatorForSeq2Seq
+from transformers import AutoTokenizer, AutoModelForCausalLM, TrainingArguments, Trainer
 from datasets import load_dataset
 import torch
 
-model_name = "google/gemma-2b"
+# 간단하고 안정적인 모델 선택
+model_name = "gpt2"  # 가장 기본적이고 안정적인 모델
 
-torch.cuda.empty_cache()
+print("Loading model...")
 tokenizer = AutoTokenizer.from_pretrained(model_name)
+if tokenizer.pad_token is None:
+    tokenizer.pad_token = tokenizer.eos_token
+
 model = AutoModelForCausalLM.from_pretrained(
     model_name,
     torch_dtype=torch.float16,
     device_map="auto",
-    low_cpu_mem_usage=True,
 )
 
-#데이터셋 로딩
-dataset = load_dataset("json", data_files="race0_q1_q16_full_alpaca.jsonl", split="train")
+# 데이터셋 로딩
+print("Loading dataset...")
+dataset = load_dataset("json", data_files="data/race0_q1_q16_full_alpaca.jsonl", split="train")
 
-def tokenize(example):
-    prompt = f"### Instruction:\n{example['instruction']}\n\n### Response:\n{example['output']}"
-    tokens = tokenizer(prompt, truncation=True, padding="max_length", max_length=64)
-    tokens["labels"]=tokens["input_ids"].copy()
-    return tokens
+def tokenize_function(examples):
+    texts = [f"### Instruction:\n{inst}\n\n### Response:\n{resp}" 
+             for inst, resp in zip(examples['instruction'], examples['output'])]
+    
+    tokenized = tokenizer(
+        texts,
+        truncation=True,
+        padding=True,
+        max_length=128,  # 더 짧게 설정
+        return_tensors=None
+    )
+    
+    # labels를 input_ids와 동일하게 설정 (loss 계산을 위해)
+    tokenized["labels"] = tokenized["input_ids"].copy()
+    
+    return tokenized
 
-tokenized_dataset = dataset.map(tokenize)
+print("Tokenizing...")
+tokenized_dataset = dataset.map(
+    tokenize_function,
+    batched=True,
+    batch_size=16,
+    remove_columns=dataset.column_names
+)
 
-#학습 설정
-args = TrainingArguments(
+# 간단한 학습 설정
+training_args = TrainingArguments(
     output_dir="./outputs",
-    per_device_train_batch_size=1,
-    gradient_accumulation_steps=1,
-    learning_rate=1e-5,
+    per_device_train_batch_size=4,
+    gradient_accumulation_steps=2,
+    learning_rate=2e-5,
     num_train_epochs=1,
-    logging_steps=50,
+    logging_steps=10,
     save_steps=500,
-    save_total_limit=1,
-    fp16=False,
-    bf16=True,
-    report_to="none")
+    fp16=False,  # fp16 비활성화 (에러 해결)
+    report_to="none",
+    dataloader_num_workers=2,
+    remove_unused_columns=False,
+)
 
+print("Setting up trainer...")
 trainer = Trainer(
     model=model,
-    args=args,
+    args=training_args,
     train_dataset=tokenized_dataset,
     tokenizer=tokenizer,
-    data_collator=DataCollatorForSeq2Seq(tokenizer, return_tensors="pt", padding=True)
 )
 
+print("Training...")
 trainer.train()
+print("Training completed!")
