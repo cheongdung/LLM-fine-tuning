@@ -22,10 +22,10 @@ alpaca_data = [
 {"instruction": "Identify vulnerabilities in this withdrawBalance function.", "input": "pragma solidity 0.8.4;\nimport \"https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/security/ReentrancyGuard.sol\";\n\ncontract test {\n    mapping (address => uint256) balances;\n    function withdrawBalance() external {\n        msg.sender.call{value: balances[msg.sender]}(\"\");\n        balances[msg.sender] = 0;\n    }\n}", "output": "The withdrawBalance function is vulnerable to reentrancy because it transfers funds before resetting the user\u2019s balance. Always follow the checks-effects-interactions pattern."},
 {"instruction": "Analyze the risks in the following ECDSA verification function.", "input": "pragma solidity 0.8.4;\n\ncontract test {\nfunction verify(address signer, bytes32 memory hash, bytes32 sigR, bytes32 sigS, uint8 sigV) internal view returns (bool) {\n   return signer == ecrecover(hash, sigV, sigR, sigS);\n}\n}", "output": "The function does not prevent signature malleability, omits use of chainID or nonce in hash, and does not check that the recovered address is non-zero. These issues can lead to replay and forgery attacks."} ]
 
-with open("race0_q1_q16_full_alpaca.jsonl", "w", encoding="utf-8") as f:
+with open("data/race0_q1_q16_full_alpaca.jsonl", "w", encoding="utf-8") as f:
     for entry in alpaca_data:
         f.write(json.dumps(entry, ensure_ascii=False) + "\n")
 
 
-with open("race0_q1_q16_full_alpaca.jsonl", "r") as f:
+with open("data/race0_q1_q16_full_alpaca.jsonl", "r") as f:
     alpaca_data = [json.loads(line) for line in f]
