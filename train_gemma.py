@@ -22,7 +22,7 @@ def load_and_prepare_data():
     
     # JSONL 파일 읽기
     data = []
-    with open("data/race0_q1_q16_full_alpaca.jsonl", "r", encoding="utf-8") as f:
+    with open("data/merged_dataset.jsonl", "r", encoding="utf-8") as f:
         for line in f:
             data.append(json.loads(line))
     
@@ -128,8 +128,8 @@ def main():
         output_dir="./outputs_gemma",
         per_device_train_batch_size=2,
         gradient_accumulation_steps=4,
-        learning_rate=5e-6,
-        num_train_epochs=3,
+        learning_rate=5e-5,
+        num_train_epochs=10,
         logging_steps=5,
         save_steps=20,
         save_total_limit=3,
