@@ -58,36 +58,43 @@ def test_fixed_model():
     ]
     
     for i, instruction in enumerate(test_cases, 1):
-        print(f"Question: {instruction}")
+        print(f"Question {i}: {instruction}")
         
+        # 입력이 없는 경우에도 명시적으로 비워줌 (Alpaca 포맷과 동일하게)
+        input_text = ""
+
         # 프롬프트 생성
-        prompt = f"### Instruction:\n{instruction}\n\n### Response:\n"
+        prompt = (
+            f"### Instruction:\n{instruction}\n\n"
+            f"### Input:\n{input_text}\n\n"
+            f"### Response:\n"
+        )
         
-        # 토크나이징 (attention_mask 포함)
+        # 토크나이징
         inputs = tokenizer(prompt, return_tensors="pt", padding=True, truncation=True)
         
         try:
             with torch.no_grad():
                 outputs = model.generate(
                     inputs["input_ids"],
-                    attention_mask=inputs["attention_mask"],  # attention_mask 명시적 전달
+                    attention_mask=inputs["attention_mask"],
                     max_new_tokens=100,
                     do_sample=True,
                     temperature=0.7,
                     top_p=0.9,
                     pad_token_id=tokenizer.eos_token_id,
                     eos_token_id=tokenizer.eos_token_id,
-                    repetition_penalty=1.1  # 반복 방지
+                    repetition_penalty=1.1
                 )
             
             # 응답 디코딩
             full_response = tokenizer.decode(outputs[0], skip_special_tokens=True)
             response = full_response[len(prompt):].strip()
             
-            print(f"Response: {response}\n")
+            print(f"Response:\n{response}\n{'='*50}\n")
             
         except Exception as e:
-            print(f"Error: {e}")
+            print(f"[Error] {e}")
 
 if __name__ == "__main__":
     test_fixed_model()
